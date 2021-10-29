@@ -9,20 +9,22 @@ import android.net.wifi.WifiManager
 import android.net.wifi.WpsInfo
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pManager
+import android.net.wifi.p2p.WifiP2pManager.ActionListener
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Looper
 import android.util.Log
+import android.view.Menu
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
-import androidx.core.content.getSystemService
-import android.util.Log.e
 import android.util.Log.v as v1
 
 
 // This class extends Activity and implements Channel Listener and Action Listener
 // TODO: In the example requires Device action listener
+// TODO: Must implement fragments (Device Detail and List) to make the operation simple
 class MainActivity : AppCompatActivity(),
-    WifiP2pManager.ChannelListener, WifiP2pManager.ActionListener {
+    WifiP2pManager.ChannelListener, DeviceListFragment.DeviceActionListener {
     //In manifest file the coarse location is also set -- as it is required.
 
     private val intentFilter = IntentFilter()
@@ -33,6 +35,23 @@ class MainActivity : AppCompatActivity(),
     private val channel = manager.initialize(this, mainLooper, null)
     @Suppress("PrivatePropertyName")
     private val TAG = "Main Activity"
+    private var retryChannel = false
+
+    lateinit var fragmentList:MutableList<String>
+    lateinit var fragmentDetails: MutableList<String>
+
+    // TODO: Where to put the code?
+    val device = peers[0]
+    val config = WifiP2pConfig().apply {
+        deviceAddress = device.deviceAddress
+        wps.setup = WpsInfo.PBC
+    }
+
+
+    // Sets the Wifi P2p enable to a value specified
+    fun setIsWifiP2pEnabled(isWifiP2pEnabled:Boolean){
+        this.isWifiP2pEnabled = isWifiP2pEnabled
+    }
 
     // Checks if a particular permission is granted or not
     override fun onRequestPermissionsResult(
@@ -85,32 +104,6 @@ class MainActivity : AppCompatActivity(),
         unregisterReceiver(receiver)
     }
 
-    // This function is for network discovery.
-    // Discovery process remains active till the P2P group is formed
-    // TODO: Get the missing permission from the user
-    private fun networkDiscovery(manager: WifiP2pManager, channel: WifiP2pManager.Channel) {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(this,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
-            return
-        }
-
-        manager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
-            override fun onSuccess() {
-                v1(TAG, "Discovery Initialization Successful")
-            }
-
-            override fun onFailure(p0: Int) {
-                v1(TAG, "Discovery Initialization Failed")
-            }
-        })
-    }
-
-
     // These functions are added for setting up broadcast receiver
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -130,31 +123,63 @@ class MainActivity : AppCompatActivity(),
 
 
         if (!initP2P()){
-            finish();
+            finish()
         }
         // For network discovery
         networkDiscovery(manager, channel)
     }
 
+    //TODO: Must be changed to fragment
+    public fun resetData() {
+        if (!fragmentList.isEmpty())
+            fragmentList.clear()
+        if (!fragmentDetails.isEmpty())
+            fragmentDetails.clear()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        TODO("Must implement this function after creating a menu")
+        return super.onCreateOptionsMenu(menu)
+    }
+
+
+
+    // This function is for network discovery.
+    // Discovery process remains active till the P2P group is formed
+    // TODO: Get the missing permission from the user
+    private fun networkDiscovery(manager: WifiP2pManager, channel: WifiP2pManager.Channel) {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
+            return
+        }
+
+        manager.discoverPeers(channel, object : ActionListener {
+            override fun onSuccess() {
+                v1(TAG, "Discovery Initialization Successful")
+            }
+
+            override fun onFailure(p0: Int) {
+                v1(TAG, "Discovery Initialization Failed")
+            }
+        })
+    }
 
 
     // TODO: See if permission can be added
     @SuppressLint("MissingPermission")
-    fun connect(){
-        val device = peers[0]
-        val config = WifiP2pConfig().apply {
-            deviceAddress = device.deviceAddress
-            wps.setup = WpsInfo.PBC
-        }
-
-        manager.connect(channel, config, object:WifiP2pManager.ActionListener{
+    override fun connect(config: WifiP2pConfig) {
+        manager.connect(channel, config, object: ActionListener{
             override fun onSuccess() {
                 TODO("Not yet implemented")
             }
 
             override fun onFailure(p0: Int) {
-                Toast.makeText(
-                     this,
+                Toast.makeText(this@MainActivity,
                     "Connect failed. Retry.",
                     Toast.LENGTH_SHORT
                 ).show()
@@ -163,16 +188,36 @@ class MainActivity : AppCompatActivity(),
         })
     }
 
+    override fun disconnect(){
+        manager.removeGroup(channel, object: ActionListener{
+            override fun onSuccess() {
+                TODO("Implement with fragment")
+
+            }
+
+            override fun onFailure(p0: Int) {
+                Log.d(TAG, "Disconnect failed. Reason :$p0")
+            }
+
+        })
+    }
 
     override fun onChannelDisconnected() {
-        TODO("Not yet implemented")
+       if(manager!= null && !retryChannel){
+           Toast.makeText(this@MainActivity,
+           "Channel Lost. Trying again", Toast.LENGTH_LONG).show()
+            resetData()
+           retryChannel = true
+           manager.initialize(this, Looper.getMainLooper(), this)
+       }
+       else{
+           Toast.makeText(this@MainActivity,
+           "Severe, Channel is lost permanently", Toast.LENGTH_LONG).show()
+       }
     }
 
-    override fun onSuccess() {
-        TODO("Not yet implemented")
+    override fun cancelDisconnect() {
+        
     }
 
-    override fun onFailure(p0: Int) {
-        TODO("Not yet implemented")
-    }
 }
