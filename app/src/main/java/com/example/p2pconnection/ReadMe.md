@@ -23,3 +23,7 @@ wps.setup = WpsInfo.PBC
 1. The code uses property access syntax - for settext and setvisibility 
 2. The layout variable includes a suppress resource type - what is the functionality and need
    (Must be changed in case of errors in progressbar)
+
+*** In the code DeviceDetailFragment
+1. In this and the previous one instead of onActivityCreated, onViewCreated is used -- check the timeline
+and verify that it is fine
