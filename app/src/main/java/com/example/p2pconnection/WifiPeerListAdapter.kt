@@ -15,6 +15,7 @@ open class WifiPeerListAdapter(context: Context, resource: Int, objects: Mutable
     // This is declared as a global variable
     // TODO: Must check how to implement a constructor
     val items = objects
+    lateinit var device: WifiP2pDevice
 
     // TODO: Must check of checking against null must be removed
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
@@ -33,12 +34,11 @@ open class WifiPeerListAdapter(context: Context, resource: Int, objects: Mutable
             val top: TextView = v.findViewById(R.id.device_name)
             val bottom: TextView = v.findViewById(R.id.device_details)
             if (top != null)
-                top.setText(device.deviceName)
+                top.text = device.deviceName
             if (bottom != null)
                 // TODO: Must include this to the device list fragement part
-                bottom.setText(DeviceListFragment.getDeviceStatus(device.status))
+                bottom.text = DeviceListFragment(context).getDeviceStatus(device.status)
         }
         return v;
     }
-
 }

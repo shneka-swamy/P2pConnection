@@ -34,8 +34,7 @@ class MainActivity : AppCompatActivity(),
     // Get WiFi Channel to connect to the P2P framework
     private var manager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
     private val channel = manager.initialize(this, mainLooper, null)
-    @Suppress("PrivatePropertyName")
-    private val TAG = "Main Activity"
+    private val TAG:String = "Main Activity"
     private var retryChannel = false
 
     lateinit var fragmentList:MutableList<String>
@@ -135,8 +134,6 @@ class MainActivity : AppCompatActivity(),
         TODO("Must implement this function after creating a menu")
         return super.onCreateOptionsMenu(menu)
     }
-
-
 
     // This function is for network discovery.
     // Discovery process remains active till the P2P group is formed

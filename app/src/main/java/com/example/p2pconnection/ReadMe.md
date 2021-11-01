@@ -18,3 +18,6 @@ val config = WifiP2pConfig().apply {
 deviceAddress = device.deviceAddress
 wps.setup = WpsInfo.PBC
 }
+
+** The code uses property access syntax - for settext and setvisibility (If something goes wrong try 
+reverting to this segment of the code)
