@@ -19,5 +19,7 @@ deviceAddress = device.deviceAddress
 wps.setup = WpsInfo.PBC
 }
 
-** The code uses property access syntax - for settext and setvisibility (If something goes wrong try 
-reverting to this segment of the code)
+*** In the code DeviceListFragment:
+1. The code uses property access syntax - for settext and setvisibility 
+2. The layout variable includes a suppress resource type - what is the functionality and need
+   (Must be changed in case of errors in progressbar)

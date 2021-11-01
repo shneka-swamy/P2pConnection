@@ -1,6 +1,7 @@
 package com.example.p2pconnection
 
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
@@ -17,6 +18,7 @@ import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.fragment.app.ListFragment
 
+
 // This class uses functionality of WifiPeerListAdapter class
 class DeviceListFragment (context: Context): ListFragment(),WifiP2pManager.PeerListListener {
 
@@ -32,7 +34,7 @@ class DeviceListFragment (context: Context): ListFragment(),WifiP2pManager.PeerL
     // setListAdapter is expecting a class body --- why ??
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setListAdapter(object : WifiPeerListAdapter(classContext, R.layout.row_devices, peers))
+        this.listAdapter = WifiPeerListAdapter(classContext, R.layout.row_devices, peers)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -95,6 +97,8 @@ class DeviceListFragment (context: Context): ListFragment(),WifiP2pManager.PeerL
     }
 
     // TODO: Must understand the functionality of !! while calling a nullable object
+    // TODO: Must understand what is suppressing resource type
+    @SuppressLint("ResourceType")
     fun onInitiateDiscovery(){
         if (progressBar != null && progressBar!!.visibility == View.VISIBLE)
             progressBar!!.visibility = View.GONE
@@ -102,6 +106,8 @@ class DeviceListFragment (context: Context): ListFragment(),WifiP2pManager.PeerL
         val params = RelativeLayout.LayoutParams(100, 100)
         params.addRule(RelativeLayout.CENTER_IN_PARENT)
         // TODO: How to add view to a listener -- cannot define layout
+        var layout = view?.findViewById(R.layout.device_list) as RelativeLayout
+        layout.addView(progressBar, params)
         progressBar!!.visibility = View.VISIBLE
 
     }
