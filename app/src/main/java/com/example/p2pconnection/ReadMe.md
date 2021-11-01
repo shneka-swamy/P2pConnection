@@ -11,6 +11,10 @@ The materials for all preliminary functions are got from
 2. General identification and connection
    https://developer.android.com/guide/topics/connectivity/wifip2p#broadcast-receiver
 
-Uses Nvidia jetson in aerial vehicles:
-Z. Yang, G. Fei, and S. Shen. Real-time monocular dense mapping on
-aerial robots using visual-inertial fusion. In IEEE International Conference on Robotics and Automation, 2017.
+
+*** Where to put this code?
+val device = peers[0]
+val config = WifiP2pConfig().apply {
+deviceAddress = device.deviceAddress
+wps.setup = WpsInfo.PBC
+}

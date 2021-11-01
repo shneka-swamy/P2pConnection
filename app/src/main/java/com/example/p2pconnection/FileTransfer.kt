@@ -1,4 +1,7 @@
 package com.example.p2pconnection
 
-class FileTransfer {
+// TODO: Intent Service is deprecated -- what to change
+class FileTransfer{
+    
+
 }

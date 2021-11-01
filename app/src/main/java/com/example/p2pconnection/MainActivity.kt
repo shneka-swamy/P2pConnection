@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.wifi.WifiManager
 import android.net.wifi.WpsInfo
 import android.net.wifi.p2p.WifiP2pConfig
+import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
 import android.net.wifi.p2p.WifiP2pManager.ActionListener
 import androidx.appcompat.app.AppCompatActivity
@@ -39,14 +40,6 @@ class MainActivity : AppCompatActivity(),
 
     lateinit var fragmentList:MutableList<String>
     lateinit var fragmentDetails: MutableList<String>
-
-    // TODO: Where to put the code?
-    val device = peers[0]
-    val config = WifiP2pConfig().apply {
-        deviceAddress = device.deviceAddress
-        wps.setup = WpsInfo.PBC
-    }
-
 
     // Sets the Wifi P2p enable to a value specified
     fun setIsWifiP2pEnabled(isWifiP2pEnabled:Boolean){
@@ -130,10 +123,11 @@ class MainActivity : AppCompatActivity(),
     }
 
     //TODO: Must be changed to fragment
-    public fun resetData() {
-        if (!fragmentList.isEmpty())
+    //TODO: Check if the function needs to be public
+    private fun resetData() {
+        if (fragmentList.isNotEmpty())
             fragmentList.clear()
-        if (!fragmentDetails.isEmpty())
+        if (fragmentDetails.isNotEmpty())
             fragmentDetails.clear()
     }
 
@@ -216,8 +210,12 @@ class MainActivity : AppCompatActivity(),
        }
     }
 
+    override fun showDetails(device: WifiP2pDevice) {
+        TODO("Not yet implemented")
+    }
+
     override fun cancelDisconnect() {
-        
+        TODO("Not yet implemented")
     }
 
 }
