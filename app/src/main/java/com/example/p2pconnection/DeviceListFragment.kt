@@ -25,13 +25,27 @@ class DeviceListFragment (context: Context): ListFragment(),WifiP2pManager.PeerL
     private val peers = mutableListOf<WifiP2pDevice>()
     val classContext = context;
     private var mContentView: View? = null
-    private var works = 1
     private lateinit var device: WifiP2pDevice
-    val TAG: String = "Device List Fragment"
     var progressBar: ProgressBar? = null
 
-    // TODO: What to use instead of setListAdapter
-    // setListAdapter is expecting a class body --- why ??
+    // Way to create static methods and variables.
+    companion object {
+        private val TAG: String = "Device List Fragment"
+
+        // Function used to return the status of a particular device given as the input
+        fun getDeviceStatus(deviceStatus: Int): String {
+            Log.d(TAG, "Peer status :$deviceStatus")
+            return when (deviceStatus) {
+                WifiP2pDevice.AVAILABLE -> "available"
+                WifiP2pDevice.INVITED -> "invited"
+                WifiP2pDevice.CONNECTED -> "connected"
+                WifiP2pDevice.UNAVAILABLE -> "unavailable"
+                WifiP2pDevice.FAILED -> "failed"
+                else -> "unknown"
+            }
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         this.listAdapter = WifiPeerListAdapter(classContext, R.layout.row_devices, peers)
@@ -45,19 +59,6 @@ class DeviceListFragment (context: Context): ListFragment(),WifiP2pManager.PeerL
     // This function returns the value of device
     fun getDevice():WifiP2pDevice{
         return device
-    }
-
-    // Function used to return the status of a particular device given as the input
-    fun getDeviceStatus(deviceStatus: Int): String{
-        Log.d(TAG, "Peer status :$deviceStatus")
-        return when(deviceStatus) {
-            WifiP2pDevice.AVAILABLE -> "available"
-            WifiP2pDevice.INVITED -> "invited"
-            WifiP2pDevice.CONNECTED -> "connected"
-            WifiP2pDevice.UNAVAILABLE -> "unavailable"
-            WifiP2pDevice.FAILED -> "failed"
-            else -> "unknown"
-        }
     }
 
     // TODO: Understand where to cast the value and where the value must be initialised
@@ -98,6 +99,7 @@ class DeviceListFragment (context: Context): ListFragment(),WifiP2pManager.PeerL
 
     // TODO: Must understand the functionality of !! while calling a nullable object
     // TODO: Must understand what is suppressing resource type
+    // TODO: Remember while making changes here that the function in Devicedetailfragement must also be changed
     @SuppressLint("ResourceType")
     fun onInitiateDiscovery(){
         if (progressBar != null && progressBar!!.visibility == View.VISIBLE)
@@ -106,7 +108,7 @@ class DeviceListFragment (context: Context): ListFragment(),WifiP2pManager.PeerL
         val params = RelativeLayout.LayoutParams(100, 100)
         params.addRule(RelativeLayout.CENTER_IN_PARENT)
         // TODO: How to add view to a listener -- cannot define layout
-        var layout = view?.findViewById(R.layout.device_list) as RelativeLayout
+        val layout = view?.findViewById(R.layout.device_list) as RelativeLayout
         layout.addView(progressBar, params)
         progressBar!!.visibility = View.VISIBLE
 

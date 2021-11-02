@@ -19,6 +19,10 @@ deviceAddress = device.deviceAddress
 wps.setup = WpsInfo.PBC
 }
 
+*** General:
+1. What is the difference between ? and !! in null supression
+2. What is the use of getString in getResources and how does it get values?
+
 *** In the code DeviceListFragment:
 1. The code uses property access syntax - for settext and setvisibility 
 2. The layout variable includes a suppress resource type - what is the functionality and need
@@ -27,3 +31,7 @@ wps.setup = WpsInfo.PBC
 *** In the code DeviceDetailFragment
 1. In this and the previous one instead of onActivityCreated, onViewCreated is used -- check the timeline
 and verify that it is fine
+2. What is suppress SetTestI18n compression and why must it be done. In setUri
+3. A part of the onClick is not completed and requires the completion of FileTransfer
+
+   
