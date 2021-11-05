@@ -9,6 +9,8 @@ import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pInfo
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -18,7 +20,12 @@ import android.widget.ProgressBar
 import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import java.io.*
+import java.net.ServerSocket
+import java.net.Socket
+import java.util.concurrent.Executors
 
 class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
 
@@ -28,6 +35,7 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
     var progressBar: ProgressBar? = null
     private lateinit var info: WifiP2pInfo
     private val TAG: String = "Device Detail Fragment"
+    var statusText = mContentView?.findViewById(R.id.status_text) as TextView
 
     // TODO: This function is used in place of onActivityCreated
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -73,7 +81,6 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
                     val statusText = mContentView!!.findViewById(R.id.status_text) as TextView
                     statusText.text = "Sending $uri"
                     Log.d(TAG, "Intent--- $uri")
-
                     // TODO Important: This section must be completed after the file transfer section
                     val serviceIntent =  Intent(activity, FileTransfer::class.java)
                     TODO("This cannot be implemented before the file transfer part")
@@ -107,19 +114,88 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
         // single connection server socket.
 
         if(info.groupFormed && info.isGroupOwner){
-            TODO("Implement this function when Asynchronous task can be implemented")
+            val executor = Executors.newSingleThreadExecutor()
+            val handler = Handler(Looper.getMainLooper())
+            executor.execute{
+                val result: String? = doInBackground()
+                handler.post {
+                    onPostExecute(result)
+                }
+            }
         }
         else if(info.groupFormed){
             // The other device acts as a client and in this case we can enable the get file button
             val startClient = mContentView?.findViewById(R.id.btn_start_client) as Button
             startClient.visibility = View.VISIBLE
-            val statusText = mContentView?.findViewById(R.id.status_text) as TextView
             statusText.text = resources.getString(R.string.client_text)
         }
         // Finally hide the connect button
         // TODO: How to integrate all these lines as one
         val connectBtn = mContentView?.findViewById(R.id.btn_connect) as TextView
         connectBtn.visibility = View.GONE
+    }
+
+    private fun doInBackground(): String? {
+        try {
+            val serverSocket = ServerSocket(8988)
+            Log.d(TAG,"Server: Socket opened")
+            var client:Socket = serverSocket.accept()
+            Log.d(TAG, "Server: Connection Done")
+            val f = File(
+                requireContext().getExternalFilesDir("received"),
+                "wifip2pshared-" + System.currentTimeMillis()
+                        + ".jpg"
+            )
+            val dirs = File(f.parent)
+            if (!dirs.exists())
+                dirs.mkdirs()
+            f.createNewFile()
+
+            Log.d(TAG, "Server copying files $f.toString()")
+            var inputstream: InputStream = client.getInputStream()
+            copyFile(inputstream, FileOutputStream(f))
+            serverSocket.close()
+            return f.absolutePath
+        }catch (e: IOException){
+            Log.e(TAG, e.message.toString())
+            return null
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun onPostExecute(result: String?){
+        if(result != null){
+            statusText.text = "File copied: $result"
+            val recvFile = File(result)
+            val fileUri: Uri = FileProvider.getUriForFile(
+                                requireContext(),
+                                "com.example.android.P2PConnection.fileprovider",
+                                recvFile
+            )
+
+            val intent = Intent()
+            intent.action = Intent.ACTION_VIEW
+            intent.setDataAndType(fileUri, "image/*")
+            intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+            context?.startActivity(intent)
+        }
+    }
+
+    private fun copyFile(inputStream: InputStream, out: OutputStream):Boolean{
+        val buf = ByteArray(1024)
+        var len: Int
+        try {
+            while (inputStream.read(buf) != -1){
+                len = inputStream.read(buf)
+                out.write(buf,0, len)
+            }
+            out.close()
+            inputStream.close()
+        }catch (e: IOException){
+            Log.d("TAG", e.toString())
+            return false
+        }
+        return true
     }
 
     // Updates the UI with the device data
@@ -148,7 +224,4 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
         startClient.visibility = View.GONE
         this.view?.visibility = View.GONE
     }
-
-    // TODO: Develop a socket that sets up connection and writes to a stream
-
 }
