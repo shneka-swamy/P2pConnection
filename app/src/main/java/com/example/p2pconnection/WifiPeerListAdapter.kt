@@ -14,7 +14,6 @@ open class WifiPeerListAdapter(context: Context, resource: Int, objects: Mutable
 
     val items = objects
 
-    // TODO: Must check of checking against null must be removed
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         lateinit var v: View
 

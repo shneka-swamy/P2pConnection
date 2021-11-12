@@ -61,7 +61,6 @@ class DeviceListFragment (context: Context): ListFragment(),WifiP2pManager.PeerL
         return device
     }
 
-    // TODO: Understand where to cast the value and where the value must be initialised
     override fun onListItemClick(l: ListView, v: View, position: Int, id: Long) {
         val device = listAdapter?.getItem(position) as WifiP2pDevice
         // Remove the effects due to null
@@ -97,9 +96,6 @@ class DeviceListFragment (context: Context): ListFragment(),WifiP2pManager.PeerL
         (listAdapter as WifiPeerListAdapter?)!!.notifyDataSetChanged()
     }
 
-    // TODO: Must understand the functionality of !! while calling a nullable object
-    // TODO: Must understand what is suppressing resource type
-    // TODO: Remember while making changes here that the function in Devicedetailfragement must also be changed
     @SuppressLint("ResourceType")
     fun onInitiateDiscovery(){
         if (progressBar != null && progressBar!!.visibility == View.VISIBLE)

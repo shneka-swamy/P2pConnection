@@ -25,10 +25,6 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import android.util.Log.v as v1
 
-
-// This class extends Activity and implements Channel Listener and Action Listener
-// TODO: In the example requires Device action listener
-// TODO: Must implement fragments (Device Detail and List) to make the operation simple
 class MainActivity : AppCompatActivity(),
     WifiP2pManager.ChannelListener, DeviceListFragment.DeviceActionListener {
     //In manifest file the coarse location is also set -- as it is required.
@@ -60,10 +56,8 @@ class MainActivity : AppCompatActivity(),
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when(requestCode){
             1 -> if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // TODO: Permission was granted - what to do
                 Log.v(TAG, "Permission Granted")
             }else {
-                // TODO: Permission was not granted - Remove the functionality
                 Toast.makeText(this@MainActivity, "Permission denied", Toast.LENGTH_SHORT).show()
             }
             else -> return
@@ -124,9 +118,7 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    //TODO: Must be changed to fragment
-    //TODO: Check if the function needs to be public
-    private fun resetData() {
+    fun resetData() {
         if (fragmentList.isNotEmpty())
             fragmentList.clear()
         if (fragmentDetails.isNotEmpty())
@@ -192,12 +184,11 @@ class MainActivity : AppCompatActivity(),
         fragment.showDetails(device)
     }
 
-    // TODO: See if permission can be added
     @SuppressLint("MissingPermission")
     override fun connect(config: WifiP2pConfig) {
         manager.connect(channel, config, object: ActionListener{
             override fun onSuccess() {
-                TODO("Not yet implemented")
+                // This function can be ignored
             }
 
             override fun onFailure(p0: Int) {

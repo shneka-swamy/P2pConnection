@@ -27,7 +27,6 @@ class Listener(
         if (refreshedPeers != peers) {
             peers.clear()
             peers.addAll(refreshedPeers)
-            // TODO: Here an adapter view is used
         }
         if (peers.isEmpty()) {
             Log.d(TAG, "No devices found")
@@ -51,6 +50,30 @@ class Listener(
         }
 
     }
+    @SuppressLint("MissingPermission")
+    fun requestPassword(){
+        manager.requestGroupInfo(channel) { group ->
+            val groupPassword = group.passphrase
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun createGroup(){
+        manager.createGroup(channel, object: WifiP2pManager.ActionListener{
+            override fun onSuccess() {
+                // Device is ready to accept incoming connections from peers
+            }
+
+            override fun onFailure(p0: Int) {
+                Toast.makeText(
+                    activity,
+                    "P2P group creation failed. Retry.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        })
+    }
+
     // To get the network connection status: Stack overflow
     @SuppressLint("MissingPermission")
     private fun isNetworkAvailable():Boolean{
@@ -93,8 +116,7 @@ class Listener(
                         manager.requestConnectionInfo(channel, fragment)
                     }
                     else{
-                        // NOTE: instead of resetdata, disconnect is used
-                        activity.disconnect()
+                        activity.resetData()
                     }
                 }
 
@@ -110,32 +132,5 @@ class Listener(
 
         }
     }
-
-    // This function asks for password in case of devices that do not support wifi direct
-    @SuppressLint("MissingPermission")
-    fun requestPassword(){
-        // TODO: What can be done with this value ? -- Look further
-        manager.requestGroupInfo(channel) { group ->
-            val groupPassword = group.passphrase
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    fun createGroup(){
-        manager.createGroup(channel, object: WifiP2pManager.ActionListener{
-            override fun onSuccess() {
-                // Device is ready to accept incoming connections from peers
-            }
-
-            override fun onFailure(p0: Int) {
-                Toast.makeText(
-                    activity,
-                    "P2P group creation failed. Retry.",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        })
-    }
-
 }
 

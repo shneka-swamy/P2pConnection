@@ -21,7 +21,10 @@ wps.setup = WpsInfo.PBC
 
 *** General:
 1. What is the difference between ? and !! in null supression
-2. What is the use of getString in getResources and how does it get values?
+2. What is the use of getString in getResources and how does it get values? 
+3. Understand where to cast the value and where the value must be initialised
+4. What is suppressing null type?
+5. What is wps setup and how is the info derived
 
 *** In the code DeviceListFragment:
 1. The code uses property access syntax - for settext and setvisibility 

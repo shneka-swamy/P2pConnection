@@ -1,6 +1,7 @@
 package com.example.p2pconnection
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.net.wifi.WpsInfo
@@ -22,6 +23,7 @@ import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import androidx.work.*
 import java.io.*
 import java.net.ServerSocket
 import java.net.Socket
@@ -29,7 +31,6 @@ import java.util.concurrent.Executors
 
 class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
 
-    private val CHOOSE_FILE_RESULT_CODE = 20
     private var mContentView: View? = null
     lateinit var device: WifiP2pDevice
     var progressBar: ProgressBar? = null
@@ -37,13 +38,7 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
     private val TAG: String = "Device Detail Fragment"
     var statusText = mContentView?.findViewById(R.id.status_text) as TextView
 
-    // TODO: This function is used in place of onActivityCreated
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-    }
-
     // Abstract classes can use object but others can call the constructor
-    // TODO: What is wps setup and how is the info derived
     @SuppressLint("ResourceType", "SetTextI18n")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         mContentView = inflater.inflate(R.layout.device_detail, null)
@@ -76,17 +71,23 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
             // TODO: This segment of code is changed
             val launchActivity = registerForActivityResult(ActivityResultContracts.StartActivityForResult()){result ->
                 // TODO: Must check if this mimics the functionality intended
-                if(result.resultCode == CHOOSE_FILE_RESULT_CODE){
+                if(result.resultCode == Activity.RESULT_OK){
                     val uri: Uri? = result.data?.data
                     val statusText = mContentView!!.findViewById(R.id.status_text) as TextView
                     statusText.text = "Sending $uri"
                     Log.d(TAG, "Intent--- $uri")
-                    // TODO Important: This section must be completed after the file transfer section
-                    val serviceIntent =  Intent(activity, FileTransfer::class.java)
-                    TODO("This cannot be implemented before the file transfer part")
-                    activity?.startService(serviceIntent)
+
+                    val myData: Data = workDataOf("EXTRAS_FILE_PATH" to uri.toString(),
+                                                    "EXTRAS_GROUP_OWNER_ADDRESS" to info.groupOwnerAddress.hostAddress,
+                                                    "EXTRAS_GROUP_OWNER_PORT" to 8988)
+
+                    val uploadWorkRequest: WorkRequest = OneTimeWorkRequestBuilder<FileTransfer>().setInputData(myData).build()
+                    WorkManager.getInstance(requireActivity()).enqueue(uploadWorkRequest)
+
                 }
             }
+
+            launchActivity.launch(intent)
         }
         return mContentView
     }
@@ -146,13 +147,13 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
                 "wifip2pshared-" + System.currentTimeMillis()
                         + ".jpg"
             )
-            val dirs = File(f.parent)
+            val dirs = File(f.parent!!)
             if (!dirs.exists())
                 dirs.mkdirs()
             f.createNewFile()
 
             Log.d(TAG, "Server copying files $f.toString()")
-            var inputstream: InputStream = client.getInputStream()
+            val inputstream: InputStream = client.getInputStream()
             copyFile(inputstream, FileOutputStream(f))
             serverSocket.close()
             return f.absolutePath
@@ -181,21 +182,23 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
         }
     }
 
-    private fun copyFile(inputStream: InputStream, out: OutputStream):Boolean{
-        val buf = ByteArray(1024)
-        var len: Int
-        try {
-            while (inputStream.read(buf) != -1){
-                len = inputStream.read(buf)
-                out.write(buf,0, len)
+    companion object {
+        fun copyFile(inputStream: InputStream, out: OutputStream): Boolean {
+            val buf = ByteArray(1024)
+            var len: Int
+            try {
+                while (inputStream.read(buf) != -1) {
+                    len = inputStream.read(buf)
+                    out.write(buf, 0, len)
+                }
+                out.close()
+                inputStream.close()
+            } catch (e: IOException) {
+                Log.d("TAG", e.toString())
+                return false
             }
-            out.close()
-            inputStream.close()
-        }catch (e: IOException){
-            Log.d("TAG", e.toString())
-            return false
+            return true
         }
-        return true
     }
 
     // Updates the UI with the device data
