@@ -3,6 +3,7 @@ package com.example.p2pconnection
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.wifi.WifiManager
@@ -14,8 +15,12 @@ import android.net.wifi.p2p.WifiP2pManager.ActionListener
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import android.util.Log.v as v1
@@ -59,7 +64,7 @@ class MainActivity : AppCompatActivity(),
                 Log.v(TAG, "Permission Granted")
             }else {
                 // TODO: Permission was not granted - Remove the functionality
-                Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, "Permission denied", Toast.LENGTH_SHORT).show()
             }
             else -> return
         }
@@ -117,8 +122,6 @@ class MainActivity : AppCompatActivity(),
         if (!initP2P()){
             finish()
         }
-        // For network discovery
-        networkDiscovery(manager, channel)
     }
 
     //TODO: Must be changed to fragment
@@ -131,13 +134,37 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        TODO("Must implement this function after creating a menu")
-        return super.onCreateOptionsMenu(menu)
+        val inflater: MenuInflater = menuInflater
+        inflater.inflate(R.menu.action_items, menu)
+        return true
     }
 
-    // This function is for network discovery.
-    // Discovery process remains active till the P2P group is formed
-    // TODO: Get the missing permission from the user
+    override fun onOptionsItemSelected(item: MenuItem):Boolean {
+        return when(item.itemId){
+            R.id.atn_direct_enable -> {
+                if (channel!= null) {
+                    startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS))
+                }
+                else{
+                    Log.e(TAG, "channel or manager is null")
+                }
+                true
+            }
+
+            R.id.atn_direct_discover -> {
+                if (!isWifiP2pEnabled) {
+                    Toast.makeText(this@MainActivity, R.string.p2p_off_warning,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                networkDiscovery(manager, channel)
+                true
+            }
+
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
     private fun networkDiscovery(manager: WifiP2pManager, channel: WifiP2pManager.Channel) {
         if (ActivityCompat.checkSelfPermission(
                 this,
@@ -160,6 +187,10 @@ class MainActivity : AppCompatActivity(),
         })
     }
 
+    override fun showDetails(device: WifiP2pDevice) {
+        val fragment = supportFragmentManager.findFragmentById(R.id.frag_detail) as DeviceDetailFragment
+        fragment.showDetails(device)
+    }
 
     // TODO: See if permission can be added
     @SuppressLint("MissingPermission")
@@ -180,21 +211,20 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun disconnect(){
+        val fragment = supportFragmentManager.findFragmentById(R.id.frag_detail) as DeviceDetailFragment
+        fragment.resetViews()
         manager.removeGroup(channel, object: ActionListener{
             override fun onSuccess() {
-                TODO("Implement with fragment")
-
+                fragment.view?.visibility = View.GONE
             }
-
             override fun onFailure(p0: Int) {
                 Log.d(TAG, "Disconnect failed. Reason :$p0")
             }
-
         })
     }
 
     override fun onChannelDisconnected() {
-       if(manager!= null && !retryChannel){
+       if(!retryChannel){
            Toast.makeText(this@MainActivity,
            "Channel Lost. Trying again", Toast.LENGTH_LONG).show()
             resetData()
@@ -207,12 +237,27 @@ class MainActivity : AppCompatActivity(),
        }
     }
 
-    override fun showDetails(device: WifiP2pDevice) {
-        TODO("Not yet implemented")
-    }
-
     override fun cancelDisconnect() {
-        TODO("Not yet implemented")
+        val fragment = supportFragmentManager.findFragmentById(R.id.frag_list) as DeviceListFragment
+        if(fragment.getDevice().status == WifiP2pDevice.CONNECTED){
+            disconnect()
+        }
+        else if (fragment.getDevice().status == WifiP2pDevice.AVAILABLE ||
+                fragment.getDevice().status == WifiP2pDevice.INVITED){
+            manager.cancelConnect(channel, object: ActionListener{
+                override fun onSuccess() {
+                    Toast.makeText(this@MainActivity, "Aborting connection",
+                    Toast.LENGTH_SHORT).show()
+                }
+
+                override fun onFailure(p0: Int) {
+                    Toast.makeText(this@MainActivity,
+                        "Connect abort request failed "+ p0, Toast.LENGTH_SHORT).show()
+                }
+
+            })
+
+        }
     }
 
 }

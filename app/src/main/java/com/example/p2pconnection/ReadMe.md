@@ -34,4 +34,11 @@ and verify that it is fine
 2. What is suppress SetTestI18n compression and why must it be done. In setUri
 3. A part of the onClick is not completed and requires the completion of FileTransfer
 
-   
+*** In the Main Activity code:
+1. manager and fragment cannot be null. This can be changed if required.
+
+*** In the Listener code:
+1. the else part of isConnected is not added -- is this required
+
+** In XML files:
+1. Inside menu action_items the images must be changed (all are kept to machine to check the working)
