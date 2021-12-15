@@ -6,11 +6,14 @@
         <entry key="app/src/main/res/drawable-v24/ic_launcher_foreground.xml" value="0.19814814814814816" />
         <entry key="app/src/main/res/drawable/details_view.xml" value="0.19814814814814816" />
         <entry key="app/src/main/res/drawable/section_header.xml" value="0.1" />
-        <entry key="app/src/main/res/layout/activity_main.xml" value="0.1" />
+        <entry key="app/src/main/res/layout/activity_main.xml" value="0.22" />
         <entry key="app/src/main/res/layout/device_detail.xml" value="0.1" />
         <entry key="app/src/main/res/layout/device_list.xml" value="0.1" />
+        <entry key="app/src/main/res/layout/process_bar.xml" value="0.1" />
+        <entry key="app/src/main/res/layout/progress_bar.xml" value="0.1" />
         <entry key="app/src/main/res/layout/row_devices.xml" value="0.1" />
         <entry key="app/src/main/res/menu/action_items.xml" value="0.11018518518518519" />
+        <entry key="app/src/main/res/xml/provider_paths.xml" value="0.1" />
       </map>
     </option>
   </component>

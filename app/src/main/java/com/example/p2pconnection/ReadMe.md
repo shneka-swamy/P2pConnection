@@ -25,20 +25,14 @@ wps.setup = WpsInfo.PBC
 3. Understand where to cast the value and where the value must be initialised
 4. What is suppressing null type?
 5. What is wps setup and how is the info derived
+6. What is the functionality of yield
 
-*** In the code DeviceListFragment:
-1. The code uses property access syntax - for settext and setvisibility 
+*** In the code DeviceListFragment: 
 2. The layout variable includes a suppress resource type - what is the functionality and need
    (Must be changed in case of errors in progressbar)
 
 *** In the code DeviceDetailFragment
-1. In this and the previous one instead of onActivityCreated, onViewCreated is used -- check the timeline
-and verify that it is fine
 2. What is suppress SetTestI18n compression and why must it be done. In setUri
-3. A part of the onClick is not completed and requires the completion of FileTransfer
-
-*** In the Main Activity code:
-1. manager and fragment cannot be null. This can be changed if required.
 
 *** In the Listener code:
 1. the else part of isConnected is not added -- is this required

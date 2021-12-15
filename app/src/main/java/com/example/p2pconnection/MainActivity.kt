@@ -23,6 +23,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
+import androidx.fragment.app.FragmentActivity
 import android.util.Log.v as v1
 
 class MainActivity : AppCompatActivity(),
@@ -33,8 +34,8 @@ class MainActivity : AppCompatActivity(),
     var isWifiP2pEnabled: Boolean = false
     private lateinit var receiver: Listener
     // Get WiFi Channel to connect to the P2P framework
-    private var manager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
-    private val channel = manager.initialize(this, mainLooper, null)
+    private lateinit var manager:WifiP2pManager
+    private lateinit var channel: WifiP2pManager.Channel
     private val TAG:String = "Main Activity"
     private var retryChannel = false
 
@@ -55,7 +56,7 @@ class MainActivity : AppCompatActivity(),
     {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when(requestCode){
-            1 -> if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            1001 -> if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Log.v(TAG, "Permission Granted")
             }else {
                 Toast.makeText(this@MainActivity, "Permission denied", Toast.LENGTH_SHORT).show()
@@ -72,7 +73,7 @@ class MainActivity : AppCompatActivity(),
             Log.e(TAG,"Wfi Direct service is not supported")
             return false
         }
-        if(wifiManager?.isP2pSupported){
+        if(!wifiManager.isP2pSupported){
             Log.e(TAG,"Cannot connect to Wifi service or Wifi is off")
             return false
         }
@@ -85,8 +86,7 @@ class MainActivity : AppCompatActivity(),
 
     public override fun onResume() {
         super.onResume()
-        // To initialise an object it will be =
-        Listener(manager, channel, this)
+        receiver = Listener(manager, channel, this)
         registerReceiver(receiver, intentFilter)
     }
 
@@ -112,10 +112,13 @@ class MainActivity : AppCompatActivity(),
         // Indicate the device's detail change
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
 
+        manager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
+        channel = manager.initialize(this, mainLooper, null)
 
         if (!initP2P()){
             finish()
         }
+
     }
 
     fun resetData() {
@@ -149,6 +152,8 @@ class MainActivity : AppCompatActivity(),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
+                val fragment = supportFragmentManager.findFragmentById(R.id.frag_list) as DeviceListFragment
+                fragment.onInitiateDiscovery()
                 networkDiscovery(manager, channel)
                 true
             }
@@ -243,7 +248,8 @@ class MainActivity : AppCompatActivity(),
 
                 override fun onFailure(p0: Int) {
                     Toast.makeText(this@MainActivity,
-                        "Connect abort request failed "+ p0, Toast.LENGTH_SHORT).show()
+                        "Connect abort request failed $p0"
+                        , Toast.LENGTH_SHORT).show()
                 }
 
             })

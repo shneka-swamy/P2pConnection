@@ -3,6 +3,7 @@
 <!-- Convert Linear layout to constraint layout-->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent">
@@ -12,12 +13,15 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
         <androidx.fragment.app.FragmentContainerView
-            android:name= "com.example.p2pconnection.DeviceListFragment"
+            xmlns:android="http://schemas.android.com/apk/res/android"
+            android:name = "com.example.p2pconnection.DeviceListFragment"
             android:id="@+id/frag_list"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/phone_list_height">
+            android:layout_height="@dimen/phone_list_height"
+            tools:ignore="FragmentTagUsage,Instantiatable">
             <!-- Preview: layout=@layout/row_devices -->
         </androidx.fragment.app.FragmentContainerView>
+
 
         <androidx.fragment.app.FragmentContainerView
             android:name="com.example.p2pconnection.DeviceDetailFragment"
@@ -26,5 +30,7 @@
             android:layout_height="match_parent">
             <!-- Preview: layout=@layout/device_detail -->
         </androidx.fragment.app.FragmentContainerView>
+
     </LinearLayout>
+
 </LinearLayout>
