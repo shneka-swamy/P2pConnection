@@ -31,7 +31,10 @@ class FileTransfer(context: Context, workerParams: WorkerParameters) :
             grabber.start()
             Log.v(TAG, "starting Total frames")
             while (true) {
-                yield(grabber.grabImage() ?: break)
+                // This will grab all the images.
+                //yield(grabber.grabImage() ?: break)
+                // Trying to grab just the key frames to decrease the number of frames getting sent.
+                yield(grabber.grabKeyFrame() ?: break)
             }
             grabber.close()
         }.constrainOnce()
