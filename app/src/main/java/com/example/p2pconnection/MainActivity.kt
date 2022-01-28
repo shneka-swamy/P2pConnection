@@ -36,7 +36,6 @@ class MainActivity : AppCompatActivity(),
     // Get WiFi Channel to connect to the P2P framework
     private lateinit var manager:WifiP2pManager
     private lateinit var channel: WifiP2pManager.Channel
-    private val TAG:String = "Main Activity"
     private var retryChannel = false
 
     lateinit var fragmentList:MutableList<String>
@@ -47,6 +46,18 @@ class MainActivity : AppCompatActivity(),
         this.isWifiP2pEnabled = isWifiP2pEnabled
     }
 
+    companion object{
+        private val TAG:String = "Main Activity"
+        /*
+                init {
+                    if (OpenCVLoader.initDebug()){
+                        Log.d(TAG,"OpenCV works properly")
+                    } else{
+                        Log.d(TAG, "OpenCV does not work properly")
+                    }
+                }
+        */
+    }
     // Checks if a particular permission is granted or not
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -94,6 +105,7 @@ class MainActivity : AppCompatActivity(),
         super.onPause()
         unregisterReceiver(receiver)
     }
+
 
     // These functions are added for setting up broadcast receiver
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -28,6 +28,8 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.Executors
 
+
+
 class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
 
     private lateinit var mContentView: View
@@ -156,8 +158,10 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
             f.createNewFile()
 
             Log.d(TAG, "Server copying files $f.toString()")
-            val inputstream: InputStream = client.getInputStream()
-            copyFile(inputstream, FileOutputStream(f))
+            while (true) {
+                val inputstream: InputStream = client.getInputStream()
+                copyFile(inputstream, FileOutputStream(f))
+            }
             serverSocket.close()
             return f.absolutePath
         }catch (e: IOException){
@@ -195,7 +199,7 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
                 while (inputStream.read(buf).also { len = it } != -1) {
                     out.write(buf, 0, len)
                 }
-                out.close()
+                //out.close()
                 inputStream.close()
             } catch (e: IOException) {
                 Log.d("TAG", e.toString())
