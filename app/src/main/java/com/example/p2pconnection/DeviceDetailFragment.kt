@@ -24,11 +24,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.work.*
 import java.io.*
+import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.nio.ByteBuffer
+import java.nio.channels.ServerSocketChannel
+import java.nio.channels.SocketChannel
 import java.util.concurrent.Executors
-
-
 
 class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
 
@@ -36,10 +38,13 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
     lateinit var device: WifiP2pDevice
     private lateinit var progressBar: ProgressBar
     private lateinit var info: WifiP2pInfo
-    private val TAG: String = "Device Detail Fragment"
     lateinit var statusText:TextView
     private val FILE_EXTENSION="mp4"
+    private val PORT_NUMBER = 8988
     private val CONTENT_TYPE="video/$FILE_EXTENSION" //"image/*"
+    var serverThread: Thread? = null
+    lateinit var serverChannel: SocketChannel
+    var line = 0
 
     // Abstract classes can use object but others can call the constructor
     @SuppressLint("ResourceType", "SetTextI18n")
@@ -67,13 +72,13 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
         val startClient = mContentView.findViewById(R.id.btn_start_client) as Button
 
         val launchActivity = registerForActivityResult(ActivityResultContracts.StartActivityForResult()){result ->
-            // TODO: Must check if this mimics the functionality intended
             if(result.resultCode == Activity.RESULT_OK){
                 val uri: Uri? = result.data?.data
                 val statusText = mContentView.findViewById(R.id.status_text) as TextView
-                statusText.text = "Sending $uri"
-                Log.d(TAG, "Intent--- $uri")
-                Log.d(TAG, "Host Name--- ${info.groupOwnerAddress.hostAddress}")
+                statusText.text = "Sending--- $uri"
+                Log.v(TAG, "Sending the files from Launch activity")
+                Log.v(TAG, "Intent--- $uri")
+                Log.v(TAG, "Host Name--- ${info.groupOwnerAddress.hostAddress}")
 
                 val myData: Data = workDataOf(FileTransfer.EXTRAS_FILE_PATH to uri.toString(),
                         FileTransfer.EXTRAS_GROUP_OWNER_ADDRESS to info.groupOwnerAddress.hostAddress,
@@ -81,7 +86,6 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
 
                 val uploadWorkRequest: WorkRequest = OneTimeWorkRequestBuilder<FileTransfer>().setInputData(myData).build()
                 WorkManager.getInstance(requireActivity()).enqueue(uploadWorkRequest)
-
             }
         }
 
@@ -95,13 +99,22 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
         return mContentView
     }
 
+    fun createSocketChannel() : SocketChannel {
+        val serverSocket: ServerSocketChannel
+        val serverClient: SocketChannel
+        serverSocket = ServerSocketChannel.open()
+        serverSocket.socket().bind(InetSocketAddress(PORT_NUMBER))
+        serverClient = serverSocket.accept()
+        serverClient.configureBlocking(false)
+        return serverClient
+    }
+
     @SuppressLint("SetTextI18n")
     override fun onConnectionInfoAvailable(p0: WifiP2pInfo) {
         if (p0.groupOwnerAddress != null) {
             if (progressBar.visibility == View.VISIBLE) {
                 progressBar.visibility = View.GONE
             }
-            // TODO: Requires to be null asserted ?
             info = p0
             progressBar.visibility = View.VISIBLE
 
@@ -118,8 +131,15 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
 
             // The group owner is assigned as the file server. The file server is a single threaded,
             // single connection server socket.
-
+            // TODO: This is the start -- where the connection needs to be set up
             if (info.groupFormed && info.isGroupOwner) {
+//                val serverChannel = createSocketChannel()
+//                Log.v(TAG, "Server Channel is set")
+//                runServerThread()
+
+
+                // Setup a socket channel to enable communication
+                // TODO: Check how to get the Threads working properly in this case.
                 val executor = Executors.newSingleThreadExecutor()
                 val handler = Handler(Looper.getMainLooper())
                 executor.execute {
@@ -140,6 +160,30 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
         }
     }
 
+    // TODO: Continue from this part.
+    private fun readContent(){
+        var byteBuffer = ByteBuffer.allocate(1024)
+        line = serverChannel.read(byteBuffer)
+    }
+
+    private fun runServerThread(){
+        serverThread!!.start()
+        serverThread = Thread{
+            try {
+                readContent()
+            }catch (e: IOException){
+                e.printStackTrace()
+            }
+            try {
+                Thread.sleep(100000)
+            }catch (interruptedException: InterruptedException){
+                interruptedException.printStackTrace()
+            }
+        }
+    }
+
+    // This is a function used to set the receiver socket
+    // TODO: This is the recevier code that can be changed.
     private fun doInBackground(): String? {
         try {
             val serverSocket = ServerSocket(8988)
@@ -149,8 +193,8 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
             val f = File(
                 requireContext().getExternalFilesDir("received"),
                 "wifip2pshared-" + System.currentTimeMillis()
-                + ".jpeg"
-                        //+ ".$FILE_EXTENSION"
+                //+ ".jpeg"
+                        + ".$FILE_EXTENSION"
             )
             val dirs = File(f.parent!!)
             if (!dirs.exists())
@@ -158,10 +202,14 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
             f.createNewFile()
 
             Log.d(TAG, "Server copying files $f.toString()")
-            while (true) {
+            // This part is for the testing of the characteristics
+            // TODO: If the while(true) part is run then the client socket closes
+            // Thus the connection cannot be set forever
+
+            //while (true) {
                 val inputstream: InputStream = client.getInputStream()
                 copyFile(inputstream, FileOutputStream(f))
-            }
+            //}
             serverSocket.close()
             return f.absolutePath
         }catch (e: IOException){
@@ -182,27 +230,35 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
                                 recvFile
             )
 
-            val intent = Intent()
-            intent.action = Intent.ACTION_VIEW
-            //intent.setDataAndType(fileUri, CONTENT_TYPE)
-            intent.setDataAndType(fileUri, "image/*")
+            // Main activity context is this, Since this is not the main activity calling the intent will involve using context
+            // TODO: The content type is not included as of now -- this feature can be added to improve functionality
+            val intent = Intent(context, VideoPlayer::class.java)
+            intent.putExtra("uri", fileUri.toString())
+            intent.putExtra("contentType", CONTENT_TYPE)
             intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-            context?.startActivity(intent)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+            Log.v(TAG, "Starting the intent to launch the video")
+            startActivity(intent)
         }
     }
 
     companion object {
+        private val TAG: String = "DeviceDetailFragment"
         fun copyFile(inputStream: InputStream, out: OutputStream): Boolean {
             val buf = ByteArray(1024)
             var len: Int
             try {
+                Log.v(TAG, "In copyfile")
                 while (inputStream.read(buf).also { len = it } != -1) {
                     out.write(buf, 0, len)
                 }
-                //out.close()
+                Log.v(TAG, "Finished reading from the input stream")
+                // TODO: Check if the closing of inputstream and out causes the socket to close
+                out.flush()
+                out.close()
                 inputStream.close()
             } catch (e: IOException) {
-                Log.d("TAG", e.toString())
+                Log.d(TAG, e.toString())
                 return false
             }
             return true

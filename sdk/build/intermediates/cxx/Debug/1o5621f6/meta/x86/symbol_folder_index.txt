@@ -1,0 +1,1 @@
+/home/shnekam/StudioProjects/P2PConnection/sdk/build/intermediates/cxx/Debug/1o5621f6/obj/x86

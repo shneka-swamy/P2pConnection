@@ -7,11 +7,11 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.wifi.WifiManager
-import android.net.wifi.WpsInfo
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
 import android.net.wifi.p2p.WifiP2pManager.ActionListener
+import android.os.BatteryManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Looper
@@ -23,7 +23,8 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
-import androidx.fragment.app.FragmentActivity
+import java.lang.Exception
+import java.lang.Integer.max
 import android.util.Log.v as v1
 
 class MainActivity : AppCompatActivity(),
@@ -191,7 +192,7 @@ class MainActivity : AppCompatActivity(),
             }
 
             override fun onFailure(p0: Int) {
-                v1(TAG, "Discovery Initialization Failed")
+                Log.e(TAG, "Discovery Initialization Failed, status: $p0")
             }
         })
     }
@@ -201,8 +202,26 @@ class MainActivity : AppCompatActivity(),
         fragment.showDetails(device)
     }
 
+    fun getBattery():Int{
+        val bm = this.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+        val batteryPct:Int = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        Log.v(TAG, "Battery value is $batteryPct")
+        return batteryPct
+    }
+
+    fun getGOIntent(batteryPct:Int):Int{
+        val goIntent = (3/17)*batteryPct + 45/17
+        return max(goIntent, 0)
+    }
+
     @SuppressLint("MissingPermission")
     override fun connect(config: WifiP2pConfig) {
+        Log.v(TAG, "Setting up configuration")
+        val batteryPct = getBattery()
+        config.groupOwnerIntent = getGOIntent(batteryPct)
+
+        Log.v(TAG, "config val ${config.groupOwnerIntent}")
+
         manager.connect(channel, config, object: ActionListener{
             override fun onSuccess() {
                 // This function can be ignored
@@ -210,12 +229,27 @@ class MainActivity : AppCompatActivity(),
 
             override fun onFailure(p0: Int) {
                 Toast.makeText(this@MainActivity,
-                    "Connect failed. Retry.",
+                    "Connect failed. Retry. code : $p0",
                     Toast.LENGTH_SHORT
                 ).show()
             }
 
         })
+    }
+    private fun deletePersistentGroups() {
+        try {
+            val methods = WifiP2pManager::class.java.methods
+            for (i in methods.indices) {
+                if (methods[i].name == "deletePersistentGroup") {
+                    // Delete any persistent group
+                    for (netid in 0..31) {
+                        methods[i].invoke(manager, channel, netid, null)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override fun disconnect(){
@@ -224,6 +258,7 @@ class MainActivity : AppCompatActivity(),
         manager.removeGroup(channel, object: ActionListener{
             override fun onSuccess() {
                 fragment.view?.visibility = View.GONE
+                deletePersistentGroups()
             }
             override fun onFailure(p0: Int) {
                 Log.d(TAG, "Disconnect failed. Reason :$p0")

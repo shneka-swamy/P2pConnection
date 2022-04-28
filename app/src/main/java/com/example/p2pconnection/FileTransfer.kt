@@ -25,7 +25,7 @@ class FileTransfer(context: Context, workerParams: WorkerParameters) :
         private const val TAG: String = "File Transfer"
     }
 
-    // This function is used by the server to send data to the client
+    // TODO: This function is the sender side of the code that can be changed
     override fun doWork(): Result {
         val context: Context = applicationContext
         val fileUri: String = inputData.getString(EXTRAS_FILE_PATH)!!
@@ -41,8 +41,17 @@ class FileTransfer(context: Context, workerParams: WorkerParameters) :
             Log.d(TAG, "Client Socket ${socket.isConnected}")
             val stream: OutputStream = socket.getOutputStream()
             val cr:ContentResolver = context.contentResolver
-            val mv = ModifyVideo(context, cr, Uri.parse(fileUri))
-            mv.sendFrame2(stream)
+            var inputStream: InputStream? = null
+            try {
+                inputStream = cr.openInputStream(Uri.parse(fileUri))
+            }catch (e:FileNotFoundException){
+                Log.d(TAG,e.toString())
+            }
+            DeviceDetailFragment.copyFile(inputStream!!, stream)
+
+            // This section of code is used to run the profiler
+            //val mv = ModifyVideo(context, cr, Uri.parse(fileUri))
+            //mv.sendFrame2(stream)
             //while(true)
             //mv.frameRecorder(stream)
             //frameGrabber(inputStream, stream)
@@ -55,6 +64,7 @@ class FileTransfer(context: Context, workerParams: WorkerParameters) :
         finally {
             if (socket.isConnected){
                 try {
+                    Log.v(TAG,"Closing the socket at the server side")
                     socket.close()
                 }catch (e: IOException){
                     e.printStackTrace()

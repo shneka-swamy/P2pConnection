@@ -2,10 +2,6 @@ package com.example.p2pconnection
 
 
 import android.annotation.SuppressLint
-import android.app.ActionBar
-import android.app.AlertDialog
-import android.content.Context
-import android.graphics.Color
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pDeviceList

@@ -1,3 +1,4 @@
+// This class is utilised for profiling only -- need not be included for the actual code.
 package com.example.p2pconnection
 
 import android.content.ContentResolver

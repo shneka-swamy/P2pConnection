@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.NetworkCapabilities.NET_CAPABILITY_WIFI_P2P
 import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
 import android.util.Log
@@ -74,22 +75,6 @@ class Listener(
         })
     }
 
-    // To get the network connection status: Stack overflow
-    @SuppressLint("MissingPermission")
-    private fun isNetworkAvailable():Boolean{
-        val connectivityManager = activity.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val nw = connectivityManager.activeNetwork ?: return false
-        val actNw = connectivityManager.getNetworkCapabilities(nw) ?: return false
-
-        return when {
-            actNw.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
-            actNw.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
-            actNw.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
-            actNw.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) -> true
-            else -> false
-        }
-    }
-
     // Checking null pointer exception is not done in the documentation but is included here
     @SuppressLint("MissingPermission")
     override fun onReceive(context: Context?, intent: Intent?) {
@@ -110,14 +95,10 @@ class Listener(
             WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION -> {
                 // Connection state changed - do accordingly
                 manager.let { mmanager ->
-                    if (isNetworkAvailable()){
-                        val fragment = activity.
-                            supportFragmentManager.findFragmentById(R.id.frag_detail) as DeviceDetailFragment
-                        manager.requestConnectionInfo(channel, fragment)
-                    }
-                    else{
-                        activity.resetData()
-                    }
+                    val fragment = activity.
+                        supportFragmentManager.findFragmentById(R.id.frag_detail) as DeviceDetailFragment
+                    manager.requestConnectionInfo(channel, fragment)
+
                 }
 
             }
