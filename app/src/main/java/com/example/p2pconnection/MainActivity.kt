@@ -217,14 +217,16 @@ class MainActivity : AppCompatActivity(),
     @SuppressLint("MissingPermission")
     override fun connect(config: WifiP2pConfig) {
         Log.v(TAG, "Setting up configuration")
-        val batteryPct = getBattery()
-        config.groupOwnerIntent = getGOIntent(batteryPct)
+        // TODO: Does this put too much load on the connect Thread
+        //val batteryPct = getBattery()
+        //config.groupOwnerIntent = getGOIntent(batteryPct)
 
-        Log.v(TAG, "config val ${config.groupOwnerIntent}")
+        //Log.v(TAG, "config val ${config.groupOwnerIntent}")
 
         manager.connect(channel, config, object: ActionListener{
             override fun onSuccess() {
                 // This function can be ignored
+                Log.v(TAG, "Connection was formed successfully")
             }
 
             override fun onFailure(p0: Int) {
@@ -242,7 +244,7 @@ class MainActivity : AppCompatActivity(),
             for (i in methods.indices) {
                 if (methods[i].name == "deletePersistentGroup") {
                     // Delete any persistent group
-                    for (netid in 0..31) {
+                    for (netid in 0..32) {
                         methods[i].invoke(manager, channel, netid, null)
                     }
                 }

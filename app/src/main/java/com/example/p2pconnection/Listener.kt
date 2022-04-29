@@ -23,6 +23,8 @@ class Listener(
     private val peers = mutableListOf<WifiP2pDevice>()
 
     // NOTE: These functions are required in case of group formation
+    // TODO: These functions are not called.
+
     private val peerListListener = WifiP2pManager.PeerListListener { peerList ->
         val refreshedPeers = peerList.deviceList
         if (refreshedPeers != peers) {
@@ -49,7 +51,6 @@ class Listener(
             // The idea is to create a peer thread that connects to the group
             // owner.
         }
-
     }
     @SuppressLint("MissingPermission")
     fun requestPassword(){
@@ -87,8 +88,7 @@ class Listener(
             }
 
             WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION -> {
-                manager.requestPeers(channel,
-                        activity.supportFragmentManager.findFragmentById(R.id.frag_list) as WifiP2pManager.PeerListListener)
+                manager.requestPeers(channel, activity.supportFragmentManager.findFragmentById(R.id.frag_list) as WifiP2pManager.PeerListListener)
                 Log.d(TAG, "P2P peers changed")
             }
 
