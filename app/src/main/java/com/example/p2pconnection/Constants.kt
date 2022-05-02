@@ -2,7 +2,9 @@ package com.example.p2pconnection
 
 class Constants {
     companion object{
-        private val it = 0
-        val port =  IntArray(10) { 5000 + (it+1)}
+        const val FILE_EXTENSION="mp4"
+        const val VIDEO_CACHE_PORT_NUMBER = 8988
+        const val CONTENT_TYPE="video/$FILE_EXTENSION"
     }
+
 }

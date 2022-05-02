@@ -2,7 +2,6 @@ package com.example.p2pconnection
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.Intent
 import android.net.Uri
 import android.net.wifi.WpsInfo
 import android.net.wifi.p2p.WifiP2pConfig
@@ -10,8 +9,6 @@ import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pInfo
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -21,14 +18,11 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.FileProvider
 import androidx.work.*
 import java.io.*
-import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.nio.ByteBuffer
-import java.nio.channels.ServerSocketChannel
 import java.nio.channels.SocketChannel
 import java.util.concurrent.Executors
 
@@ -39,9 +33,6 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
     private lateinit var progressBar: ProgressBar
     private lateinit var info: WifiP2pInfo
     lateinit var statusText:TextView
-    private val FILE_EXTENSION="mp4"
-    private val PORT_NUMBER = 8988
-    private val CONTENT_TYPE="video/$FILE_EXTENSION" //"image/*"
     var serverThread: Thread? = null
     lateinit var serverChannel: SocketChannel
     var line = 0
@@ -71,6 +62,10 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
         }
         val startClient = mContentView.findViewById(R.id.btn_start_client) as Button
 
+        // This function works as follows:
+        // It launches the gallery to get the Uri of the video that is chosen by the client and then
+        // creates a File transfer request that will send the result to the server.
+        // For the changes that are made this File Uri is not required
         val launchActivity = registerForActivityResult(ActivityResultContracts.StartActivityForResult()){result ->
             if(result.resultCode == Activity.RESULT_OK){
                 val uri: Uri? = result.data?.data
@@ -80,33 +75,39 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
                 Log.v(TAG, "Intent--- $uri")
                 Log.v(TAG, "Host Name--- ${info.groupOwnerAddress.hostAddress}")
 
-                val myData: Data = workDataOf(FileTransfer.EXTRAS_FILE_PATH to uri.toString(),
+                val myData: Data = workDataOf(
                         FileTransfer.EXTRAS_GROUP_OWNER_ADDRESS to info.groupOwnerAddress.hostAddress,
-                        FileTransfer.EXTRAS_GROUP_OWNER_PORT to 8988)
+                        FileTransfer.EXTRAS_GROUP_OWNER_PORT to Constants.VIDEO_CACHE_PORT_NUMBER)
 
                 val uploadWorkRequest: WorkRequest = OneTimeWorkRequestBuilder<FileTransfer>().setInputData(myData).build()
                 WorkManager.getInstance(requireActivity()).enqueue(uploadWorkRequest)
             }
         }
 
+        // TODO: This is the modified function -- for sending the video and calling the intent
+
+
+        // This is called when the open gallery button is clicked
         startClient.setOnClickListener{
             // This part allows the user to pick an image from the gallery or other registered app
-            val intent = Intent(Intent.ACTION_GET_CONTENT)
+            //val intent = Intent(Intent.ACTION_GET_CONTENT)
             //intent.type = "image/*"
-            intent.type = CONTENT_TYPE
-            launchActivity.launch(intent)
+            //intent.type = CONTENT_TYPE
+            //launchActivity.launch(intent)
+            setCommunication(1)
         }
         return mContentView
     }
 
-    fun createSocketChannel() : SocketChannel {
-        val serverSocket: ServerSocketChannel
-        val serverClient: SocketChannel
-        serverSocket = ServerSocketChannel.open()
-        serverSocket.socket().bind(InetSocketAddress(PORT_NUMBER))
-        serverClient = serverSocket.accept()
-        serverClient.configureBlocking(false)
-        return serverClient
+    fun setCommunication(index: Int){
+        val myData: Data = workDataOf(FileTransfer.EXTRAS_GROUP_OWNER_ADDRESS to info.groupOwnerAddress.hostAddress,
+            FileTransfer.EXTRAS_GROUP_OWNER_PORT to 8988,
+            FileTransfer.EXTRAS_VIDEO_INDEX to index
+        )
+
+        val uploadWorkRequest: WorkRequest = OneTimeWorkRequestBuilder<FileTransfer>().setInputData(myData).build()
+        WorkManager.getInstance(requireActivity()).enqueue(uploadWorkRequest)
+
     }
 
     @SuppressLint("SetTextI18n")
@@ -140,13 +141,11 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
 
                 // Setup a socket channel to enable communication
                 // TODO: Check how to get the Threads working properly in this case.
+
                 val executor = Executors.newSingleThreadExecutor()
-                val handler = Handler(Looper.getMainLooper())
                 executor.execute {
-                    val result: String? = doInBackground()
-                    handler.post {
-                        onPostExecute(result)
-                    }
+                    while(true)
+                        listenAndResponseVideo()
                 }
             } else if (info.groupFormed) {
                 // The other device acts as a client and in this case we can enable the get file button
@@ -184,63 +183,30 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
 
     // This is a function used to set the receiver socket
     // TODO: This is the recevier code that can be changed.
-    private fun doInBackground(): String? {
+    private fun listenAndResponseVideo(){
         try {
             val serverSocket = ServerSocket(8988)
             Log.d(TAG,"Server: Socket opened")
             val client:Socket = serverSocket.accept()
             Log.d(TAG, "Server: Connection Done")
-            val f = File(
-                requireContext().getExternalFilesDir("received"),
-                "wifip2pshared-" + System.currentTimeMillis()
-                //+ ".jpeg"
-                        + ".$FILE_EXTENSION"
-            )
-            val dirs = File(f.parent!!)
-            if (!dirs.exists())
-                dirs.mkdirs()
-            f.createNewFile()
+            val inputStream: InputStream = client.getInputStream()
+            val index = inputStream.read()
+            Log.v(TAG, "Received index $index")
+            val outputStream: OutputStream = client.getOutputStream()
+            val videoPath: String = "android.resource://com.example.p2pconnection/" + R.raw.test
+            var fileStream: InputStream? = null
+            fileStream = context?.contentResolver?.openInputStream(Uri.parse(videoPath))
 
-            Log.d(TAG, "Server copying files $f.toString()")
-            // This part is for the testing of the characteristics
-            // TODO: If the while(true) part is run then the client socket closes
-            // Thus the connection cannot be set forever
+            copyFile(fileStream!!,outputStream)
+            outputStream.close()
 
-            //while (true) {
-                val inputstream: InputStream = client.getInputStream()
-                copyFile(inputstream, FileOutputStream(f))
-            //}
-            serverSocket.close()
-            return f.absolutePath
+            Log.v(TAG, "server sent response to client")
+
         }catch (e: IOException){
             Log.e(TAG, e.message.toString())
-            return null
         }
     }
 
-    @SuppressLint("SetTextI18n")
-    private fun onPostExecute(result: String?){
-        if(result != null){
-            statusText.text = "File copied: $result"
-            Log.v(TAG, "File provider $result")
-            val recvFile = File(result)
-            val fileUri: Uri = FileProvider.getUriForFile(
-                                requireContext(),
-                                BuildConfig.APPLICATION_ID + ".provider",
-                                recvFile
-            )
-
-            // Main activity context is this, Since this is not the main activity calling the intent will involve using context
-            // TODO: The content type is not included as of now -- this feature can be added to improve functionality
-            val intent = Intent(context, VideoPlayer::class.java)
-            intent.putExtra("uri", fileUri.toString())
-            intent.putExtra("contentType", CONTENT_TYPE)
-            intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
-            Log.v(TAG, "Starting the intent to launch the video")
-            startActivity(intent)
-        }
-    }
 
     companion object {
         private val TAG: String = "DeviceDetailFragment"
@@ -254,9 +220,9 @@ class DeviceDetailFragment: Fragment(), WifiP2pManager.ConnectionInfoListener {
                 }
                 Log.v(TAG, "Finished reading from the input stream")
                 // TODO: Check if the closing of inputstream and out causes the socket to close
-                out.flush()
-                out.close()
-                inputStream.close()
+                  out.flush()
+//                out.close()
+//                inputStream.close()
             } catch (e: IOException) {
                 Log.d(TAG, e.toString())
                 return false
